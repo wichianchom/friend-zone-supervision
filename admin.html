@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="th" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - ระบบนิเทศ Friend Zone</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = { theme: { extend: { fontFamily: { kanit: ['Kanit', 'sans-serif'] } } } }
+  </script>
+  <style>
+    body { font-family: 'Kanit', sans-serif; background-color: #f8fafc; }
+    .glass-panel { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); }
+    @keyframes toastIn { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+    .toast-enter { animation: toastIn 0.3s ease-out; }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    input[type="number"]::-webkit-inner-spin-button, 
+    input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type="number"] { -moz-appearance: textfield; }
+  </style>
+</head>
+<body class="h-full text-slate-800 flex flex-col font-kanit">
+
+  <div id="toast-container" class="fixed top-4 right-4 z-[9999] flex flex-col gap-2"></div>
+
+  <nav class="sticky top-0 z-40 glass-panel border-b border-slate-200 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-white font-bold text-lg shadow-md">
+          <i data-lucide="shield" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold text-slate-800 leading-tight">Admin Dashboard</h1>
+          <p class="text-[10px] text-slate-500 leading-tight">ระบบนิเทศ Friend Zone</p>
+        </div>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="loadData()" class="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg text-sm font-semibold hover:bg-indigo-100 transition flex items-center gap-2">
+          <i data-lucide="refresh-cw" class="w-4 h-4"></i> รีเฟรชข้อมูล
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="flex-1 max-w-7xl mx-auto w-full px-4 py-8">
+    
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 flex items-center gap-4">
+        <div class="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center"><i data-lucide="users" class="w-6 h-6"></i></div>
+        <div><div class="text-2xl font-bold" id="stat-total">0</div><div class="text-sm text-slate-500">ข้อมูลทั้งหมด</div></div>
+      </div>
+      <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 flex items-center gap-4">
+        <div class="w-12 h-12 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center"><i data-lucide="clock" class="w-6 h-6"></i></div>
+        <div><div class="text-2xl font-bold text-amber-600" id="stat-pending">0</div><div class="text-sm text-slate-500">รอประเมิน</div></div>
+      </div>
+      <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 flex items-center gap-4">
+        <div class="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center"><i data-lucide="check-circle" class="w-6 h-6"></i></div>
+        <div><div class="text-2xl font-bold text-emerald-600" id="stat-reviewed">0</div><div class="text-sm text-slate-500">ประเมินแล้ว</div></div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col h-[600px]">
+      <div class="p-4 border-b border-slate-100 bg-slate-50 flex flex-wrap gap-3 justify-between items-center">
+        <h2 class="font-bold text-lg">รายการขอรับการนิเทศ</h2>
+        <div class="flex gap-2">
+          <select id="filter-status" onchange="renderTable()" class="border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:border-indigo-500">
+            <option value="all">ทุกสถานะ</option>
+            <option value="รอรับการนิเทศ">รอประเมิน</option>
+            <option value="ดำเนินการนิเทศเสร็จสิ้น">ประเมินแล้ว</option>
+          </select>
+          <input type="text" id="search-input" onkeyup="renderTable()" placeholder="ค้นหาชื่อ..." class="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500 w-48 font-kanit">
+        </div>
+      </div>
+      
+      <div class="flex-1 overflow-auto">
+        <table class="w-full text-sm text-left whitespace-nowrap">
+          <thead class="bg-slate-50 sticky top-0 shadow-sm z-10">
+            <tr>
+              <th class="px-4 py-3 font-semibold text-slate-600">วันที่ส่ง</th>
+              <th class="px-4 py-3 font-semibold text-slate-600">ชื่อผู้สอน</th>
+              <th class="px-4 py-3 font-semibold text-slate-600">วิชา/เรื่อง</th>
+              <th class="px-4 py-3 font-semibold text-slate-600 text-center">วิดีโอ</th>
+              <th class="px-4 py-3 font-semibold text-slate-600 text-center">สถานะ</th>
+              <th class="px-4 py-3 font-semibold text-slate-600 text-center">จัดการ</th>
+            </tr>
+          </thead>
+          <tbody id="table-body" class="divide-y divide-slate-100">
+            <tr><td colspan="6" class="text-center py-8 text-slate-400">กรุณาตั้งค่า WEB_APP_URL เพื่อโหลดข้อมูล</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <div id="eval-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4">
+    <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onclick="closeModal()"></div>
+    
+    <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[95vh] flex flex-col overflow-hidden">
+      <div class="px-4 sm:px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+        <h3 class="text-lg sm:text-xl font-bold text-indigo-700 flex items-center gap-2">
+          <i data-lucide="clipboard-edit" class="w-5 h-5"></i> แบบฟอร์มประเมินการนิเทศ (45 ข้อ)
+        </h3>
+        <button onclick="closeModal()" class="text-slate-400 hover:bg-slate-200 hover:text-slate-700 p-2 rounded-xl transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-4 sm:p-6 overflow-y-auto flex-1 bg-slate-50/50">
+        <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-4 mb-6 flex gap-4 items-start shadow-sm">
+          <div class="w-12 h-12 rounded-full bg-indigo-200 flex items-center justify-center text-indigo-700 flex-shrink-0">
+            <i data-lucide="user" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <h4 class="font-bold text-lg" id="eval-name">ชื่อ-นามสกุล</h4>
+            <p class="text-sm text-slate-600 mb-1" id="eval-class">กลุ่มชั้น | ห้อง</p>
+            <p class="text-sm font-medium text-indigo-800" id="eval-subject">วิชา: - | เรื่อง: -</p>
+          </div>
+        </div>
+
+        <form id="eval-form" class="space-y-8">
+          <input type="hidden" id="eval-row-index"> 
+          <div id="criteria-container" class="space-y-8"></div>
+
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <h4 class="font-bold text-slate-700 mb-3 border-l-4 border-purple-500 pl-3 flex items-center gap-2">
+              <span class="bg-purple-100 text-purple-700 px-2 py-0.5 rounded text-sm">หน้าที่ 4/4</span> ข้อเสนอแนะจากการนิเทศ
+            </h4>
+            <textarea id="eval-feedback" rows="4" class="w-full border border-slate-300 rounded-xl p-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none font-kanit" placeholder="โปรดระบุรายละเอียดข้อเสนอแนะ จุดเด่น และสิ่งที่ควรพัฒนา..."></textarea>
+          </div>
+        </form>
+      </div>
+
+      <div class="px-4 sm:px-6 py-4 border-t border-slate-100 bg-white shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] flex flex-wrap gap-4 items-center justify-between">
+        <div class="flex gap-4 sm:gap-6 bg-slate-50 px-4 py-2 rounded-xl border border-slate-200">
+          <div class="text-center">
+            <div class="text-[10px] sm:text-xs text-slate-500 font-semibold">คะแนน (Total)</div>
+            <div class="text-xl sm:text-2xl font-bold text-emerald-600 leading-none mt-1"><span id="display-total">0</span><span class="text-xs text-slate-400">/225</span></div>
+          </div>
+          <div class="w-px bg-slate-300"></div>
+          <div class="text-center">
+            <div class="text-[10px] sm:text-xs text-slate-500 font-semibold">ร้อยละ (%)</div>
+            <div class="text-xl sm:text-2xl font-bold text-teal-600 leading-none mt-1"><span id="display-percent">0</span><span class="text-xs text-slate-400">%</span></div>
+          </div>
+          <div class="w-px bg-slate-300"></div>
+          <div class="text-center">
+            <div class="text-[10px] sm:text-xs text-slate-500 font-semibold">เฉลี่ย (Avg)</div>
+            <div class="text-xl sm:text-2xl font-bold text-indigo-600 leading-none mt-1"><span id="display-avg">0.00</span><span class="text-xs text-slate-400">/5</span></div>
+          </div>
+        </div>
+
+        <div class="flex gap-2 w-full sm:w-auto">
+          <button onclick="closeModal()" class="flex-1 sm:flex-none px-5 py-2.5 rounded-xl border border-slate-300 text-slate-600 font-semibold hover:bg-slate-100 transition">ยกเลิก</button>
+          <button onclick="saveEvaluation()" id="save-btn" class="flex-1 sm:flex-none px-6 py-2.5 rounded-xl bg-indigo-600 text-white font-bold hover:bg-indigo-700 transition flex items-center justify-center gap-2 shadow-md">
+            <i data-lucide="save" class="w-4 h-4"></i> บันทึกคะแนน
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== ใส่ URL เดียวกับหน้า index.html =====
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxTpS34Ir7lonHxSbCEXEG2UXEKwX0cKCjDy8bVZRFkCV8bkJMd1YaqarL_b-2TrtWI/exec'; 
+
+    lucide.createIcons();
+    let sheetData = []; 
+
+    const evaluationSections = [
+      {
+        title: "ด้านที่ 1 สภาพแวดล้อมของห้องเรียน", pageTitle: "หน้าที่ 1/4", color: "blue",
+        items: ["1. ห้องเรียนสะอาดและเรียบร้อย", "2. โต๊ะและเก้าอี้เป็นระเบียบเรียบร้อย", "3. การจัดเก็บอุปกรณ์ต่าง ๆ ดูสะอาดเรียบร้อย", "4. มีชั้น ตู้ หรือที่เก็บเอกสารเป็นระเบียบ", "5. ห้องเรียนปราศจากกลิ่น สิ่งสกปรก และขยะ", "6. เครื่องมืออุปกรณ์พร้อมใช้งานเสมอ", "7. ห้องเรียนมีแสงสว่างและอากาศถ่ายเท", "8. สภาพแวดล้อมปลอดภัยต่อผู้เรียน", "9. ตกแต่งบรรยากาศส่งเสริมการเรียนรู้", "10. มีมุมเรียนรู้ด้วยตนเองตลอดเวลา", "11. มีป้ายชั้นเรียน ป้ายนิเทศ สัญลักษณ์สำคัญ", "12. จัดมุมเรียนรู้เป็นมิตรสิ่งแวดล้อม (Eco-Life skill)", "13. มุมเรียนรู้ที่ส่งเสริมเห็นคุณค่าตนเอง (Self-esteem)", "14. มุมเรียนรู้ส่งเสริมวัฒนธรรมภูมิปัญญาท้องถิ่น", "15. มีข้อมูลผู้เรียนและครูที่เป็นปัจจุบัน"]
+      },
+      {
+        title: "ด้านที่ 2 กระบวนการจัดการเรียนรู้ของครูผู้สอน", pageTitle: "หน้าที่ 2/4", color: "emerald",
+        items: ["16. เตรียมความพร้อมก่อนเข้าบทเรียนที่น่าสนใจ", "17. ทบทวนความรู้เดิมและเชื่อมโยงเนื้อหาใหม่", "18. เปิดโอกาสให้ผู้เรียนมีส่วนร่วมขั้นนำอิสระ", "19. กิจกรรมพัฒนาทักษะ 3R8C", "20. กิจกรรมส่งเสริมกระบวนการคิด", "21. เปิดโอกาสมีส่วนร่วมจัดการเรียนรู้", "22. กิจกรรมเน้นให้นักเรียนลงมือปฏิบัติจริง", "23. ใช้รูปแบบ Active Learning", "24. กิจกรรมสอดคล้องกับวัตถุประสงค์", "25. ใช้สื่อ นวัตกรรม เหมาะสมกับผู้เรียน", "26. เสริมแรง ดูแลช่วยเหลือผู้เรียนทั่วถึง", "27. วัดผลสอดคล้องกับตัวชี้วัดทุกด้าน", "28. นักเรียนสร้างชิ้นงานบรรลุวัตถุประสงค์", "29. นักเรียนสะท้อนความคิดเห็นต่อผลงานตนเอง/เพื่อน", "30. จัดกิจกรรมตามแผนการจัดการเรียนรู้", "31. ใช้เวลาในแต่ละขั้นตอนตามที่กำหนด", "32. จัดการสอนเป็นไปตามแผนทีม PLC", "33. สรุปและสะท้อนผลการเรียนรู้ภายในคาบ", "34. ผู้เรียนได้นำเสนอความสำเร็จ/อธิบายข้อผิดพลาด", "35. เสริมพลัง ให้กำลังใจ ชื่นชมผู้เรียน"]
+      },
+      {
+        title: "ด้านที่ 3 ผลลัพธ์ของผู้เรียน", pageTitle: "หน้าที่ 3/4", color: "orange",
+        items: ["36. ผู้เรียนฝึกทักษะครบตามวัตถุประสงค์", "37. ผู้เรียนบูรณาการทักษะสู่การปฏิบัติ", "38. ผู้เรียนใช้ทักษะพูด เขียน ในการเรียนรู้", "39. ผู้เรียนมีความคล่องแคล่วในการทำกิจกรรม", "40. ผู้เรียนมีทักษะผู้นำและผู้ตามที่ดี", "41. ผู้เรียนมีทักษะทางสังคม ทำงานร่วมกับผู้อื่น", "42. ผู้เรียนมีความคิดสร้างสรรค์", "43. ผู้เรียนมีทักษะแก้ปัญหาซับซ้อนด้วยตนเอง", "44. ผู้เรียนปฏิบัติงานสำเร็จมีคุณภาพ", "45. ผู้เรียนมีมารยาทที่ดีต่อครูและเพื่อน"]
+      }
+    ];
+
+    function buildCriteriaUI() {
+      const container = document.getElementById('criteria-container');
+      let html = ''; let globalIndex = 0;
+
+      evaluationSections.forEach((section) => {
+        const colors = {
+          blue: { bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-500' },
+          emerald: { bg: 'bg-emerald-100', text: 'text-emerald-700', border: 'border-emerald-500' },
+          orange: { bg: 'bg-orange-100', text: 'text-orange-700', border: 'border-orange-500' }
+        }[section.color];
+
+        let itemsHtml = section.items.map((item) => {
+          globalIndex++;
+          return `
+            <div class="flex justify-between items-center bg-white p-3 rounded-xl border border-slate-200 hover:border-indigo-300 hover:shadow-sm transition group">
+              <label class="text-sm text-slate-700 pr-4 cursor-pointer select-none" for="q${globalIndex}">${item}</label>
+              <input type="number" id="q${globalIndex}" class="score-input w-16 text-center font-bold text-indigo-700 bg-slate-50 border border-slate-300 rounded-lg py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none transition font-kanit" min="1" max="5" placeholder="1-5">
+            </div>
+          `;
+        }).join('');
+
+        html += `
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <h4 class="font-bold text-slate-800 mb-4 border-l-4 ${colors.border} pl-3 flex items-center gap-2">
+              <span class="${colors.bg} ${colors.text} px-2 py-0.5 rounded text-sm">${section.pageTitle}</span> ${section.title}
+            </h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">${itemsHtml}</div>
+          </div>
+        `;
+      });
+      container.innerHTML = html;
+    }
+
+    // ฟังก์ชัน GET ข้อมูล
+    async function loadData() {
+      if (WEB_APP_URL === 'ใส่_URL_WEB_APP_ของคุณที่นี่') return;
+      
+      showToast('กำลังซิงค์ข้อมูล...', 'info');
+      try {
+        const response = await fetch(WEB_APP_URL);
+        const data = await response.json();
+        
+        // แมปข้อมูลให้ตรงกับ Frontend
+        sheetData = data.map(row => ({
+            rowIndex: row.rowIndex,
+            timestamp: row.Timestamp,
+            name: row.Name,
+            grade: row.Grade,
+            class: row.Class,
+            subject: row.Subject,
+            topic: row.Topic,
+            link: row.Link,
+            status: row.Status,
+            total: parseInt(row.Total) || 0
+        }));
+
+        updateStats();
+        renderTable();
+      } catch (error) {
+        showToast('เกิดข้อผิดพลาดในการโหลดข้อมูล', 'error');
+        console.error(error);
+      }
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('table-body');
+      const filterStatus = document.getElementById('filter-status').value;
+      const searchQuery = document.getElementById('search-input').value.toLowerCase();
+
+      let filtered = sheetData.filter(row => {
+        const matchStatus = filterStatus === 'all' || row.status === filterStatus;
+        const matchSearch = row.name.toLowerCase().includes(searchQuery);
+        return matchStatus && matchSearch;
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-10 text-slate-400">ไม่พบข้อมูลที่ค้นหา</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(row => {
+        const isReviewed = row.status === 'ดำเนินการนิเทศเสร็จสิ้น' || row.status === 'ประเมินแล้ว';
+        const badgeClass = isReviewed ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-amber-100 text-amber-700 border-amber-200';
+        const displayStatus = isReviewed ? 'ประเมินแล้ว' : 'รอประเมิน';
+
+        const evalBtn = isReviewed 
+          ? `<button class="px-3 py-1.5 bg-slate-100 text-slate-500 rounded-lg text-xs font-semibold cursor-not-allowed font-kanit">ให้คะแนนแล้ว (${row.total}/225)</button>`
+          : `<button onclick="openModal(${row.rowIndex})" class="px-4 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-semibold hover:bg-indigo-700 shadow-sm transition font-kanit flex items-center justify-center gap-1"><i data-lucide="edit-3" class="w-3 h-3"></i> ประเมิน</button>`;
+
+        return `
+          <tr class="hover:bg-slate-50 transition border-b border-slate-100 last:border-0">
+            <td class="px-4 py-3 text-xs text-slate-500">${row.timestamp}</td>
+            <td class="px-4 py-3">
+              <div class="font-bold text-slate-800">${row.name}</div>
+              <div class="text-xs text-slate-500">${row.grade} | ${row.class}</div>
+            </td>
+            <td class="px-4 py-3">
+              <div class="text-sm font-semibold">${row.subject}</div>
+              <div class="text-xs text-slate-500 truncate w-32" title="${row.topic}">${row.topic}</div>
+            </td>
+            <td class="px-4 py-3 text-center">
+              <a href="${row.link}" target="_blank" class="inline-flex items-center justify-center p-2 text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition" title="ดูคลิป">
+                <i data-lucide="play" class="w-4 h-4 fill-current"></i>
+              </a>
+            </td>
+            <td class="px-4 py-3 text-center">
+              <span class="px-2.5 py-1 rounded-full text-[11px] font-bold border ${badgeClass}">${displayStatus}</span>
+            </td>
+            <td class="px-4 py-3 text-center">
+              <div class="flex items-center justify-center gap-2">
+                ${evalBtn}
+                <button onclick="deleteRecord(${row.rowIndex})" class="p-1.5 text-red-500 bg-red-50 rounded-lg hover:bg-red-100 transition" title="ลบข้อมูล">
+                  <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+      lucide.createIcons();
+    }
+
+    function updateStats() {
+      document.getElementById('stat-total').textContent = sheetData.length;
+      document.getElementById('stat-pending').textContent = sheetData.filter(r => r.status === 'รอรับการนิเทศ' || r.status === 'รอประเมิน').length;
+      document.getElementById('stat-reviewed').textContent = sheetData.filter(r => r.status === 'ดำเนินการนิเทศเสร็จสิ้น' || r.status === 'ประเมินแล้ว').length;
+    }
+
+    // ฟังก์ชันลบข้อมูล (เรียกใช้ API ฝั่ง GAS)
+    async function deleteRecord(rowIndex) {
+      if(!confirm('คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลนี้? (การลบจะไม่สามารถกู้คืนได้)')) return;
+      
+      const payload = { action: 'deleteRow', rowIndex: rowIndex };
+
+      try {
+        const response = await fetch(WEB_APP_URL, {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+        const res = await response.json();
+        
+        if (res.status === 'success') {
+          showToast('ลบข้อมูลสำเร็จ', 'success');
+          loadData(); // รีเฟรชตารางใหม่
+        } else {
+          showToast('เกิดข้อผิดพลาดในการลบ', 'error');
+        }
+      } catch (err) {
+        showToast('การเชื่อมต่อล้มเหลว', 'error');
+      }
+    }
+
+    function openModal(rowIndex) {
+      const target = sheetData.find(r => r.rowIndex === rowIndex);
+      if (!target) return;
+
+      document.getElementById('eval-row-index').value = rowIndex;
+      document.getElementById('eval-name').textContent = target.name;
+      document.getElementById('eval-class').textContent = `${target.grade} | ${target.class}`;
+      document.getElementById('eval-subject').textContent = `วิชา: ${target.subject} | เรื่อง: ${target.topic}`;
+
+      document.querySelectorAll('.score-input').forEach(input => {
+        input.value = '';
+        input.classList.remove('border-red-400', 'bg-red-50');
+      });
+      document.getElementById('eval-feedback').value = '';
+      calculateRealtime();
+
+      document.getElementById('eval-modal').classList.remove('hidden');
+    }
+
+    function closeModal() { document.getElementById('eval-modal').classList.add('hidden'); }
+
+    function calculateRealtime() {
+      const inputs = document.querySelectorAll('.score-input');
+      let total = 0;
+      
+      inputs.forEach(input => {
+        let val = parseInt(input.value);
+        if(!isNaN(val)) {
+          if(val > 5) { val = 5; input.value = 5; } 
+          if(val < 1) { val = 1; input.value = 1; } 
+          total += val;
+        }
+      });
+
+      const maxScore = 45 * 5; 
+      const percentage = total > 0 ? ((total / maxScore) * 100).toFixed(2) : "0.00";
+      const avg = total > 0 ? (total / 45).toFixed(2) : "0.00";
+
+      document.getElementById('display-total').textContent = total;
+      document.getElementById('display-percent').textContent = percentage;
+      document.getElementById('display-avg').textContent = avg;
+    }
+
+    // ฟังก์ชันบันทึกคะแนน (POST)
+    async function saveEvaluation() {
+      const rowIndex = document.getElementById('eval-row-index').value;
+      const inputs = document.querySelectorAll('.score-input');
+      
+      let isComplete = true;
+      let scores = [];
+      inputs.forEach(input => {
+        if(input.value === '') { isComplete = false; input.classList.add('border-red-400', 'bg-red-50'); }
+        else { input.classList.remove('border-red-400', 'bg-red-50'); }
+        scores.push(parseInt(input.value) || 0);
+      });
+
+      if (!isComplete) {
+        showToast('กรุณากรอกคะแนน (1-5) ให้ครบทั้ง 45 ข้อ', 'error');
+        return;
+      }
+
+      const total = parseInt(document.getElementById('display-total').textContent);
+      const percentage = parseFloat(document.getElementById('display-percent').textContent);
+      const avg = parseFloat(document.getElementById('display-avg').textContent);
+      const feedback = document.getElementById('eval-feedback').value;
+
+      // ตรงนี้ข้อมูล Key ต้องแมตช์กับที่ Code.gs รอรับ
+      const payload = {
+        action: 'evaluate',
+        rowIndex: parseInt(rowIndex),
+        scoreRaw: JSON.stringify(scores),
+        total: total,
+        percent: percentage,
+        avg10: avg, 
+        feedback: feedback
+      };
+
+      const btn = document.getElementById('save-btn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="animate-pulse">กำลังบันทึก...</span>';
+
+      try {
+        const response = await fetch(WEB_APP_URL, {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+        
+        const res = await response.json();
+        
+        if (res.status === 'success') {
+          showToast('บันทึกผลสำเร็จ! 🎉', 'success');
+          closeModal();
+          loadData(); // รีเฟรชตารางดึงข้อมูลสถานะล่าสุด
+        } else {
+          showToast('เกิดข้อผิดพลาด: ' + res.message, 'error');
+        }
+      } catch (err) {
+        showToast('เกิดข้อผิดพลาดในการเชื่อมต่อเครือข่าย', 'error');
+        console.error(err);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i data-lucide="save" class="w-4 h-4"></i> บันทึกคะแนน';
+      }
+    }
+
+    function showToast(msg, type = 'success') {
+      const c = document.getElementById('toast-container');
+      const d = document.createElement('div');
+      d.className = `toast-enter ${type === 'error' ? 'bg-red-500' : type === 'info' ? 'bg-indigo-500' : 'bg-emerald-500'} text-white px-5 py-3 rounded-xl shadow-lg text-sm font-medium flex items-center gap-2 font-kanit`;
+      d.innerHTML = `<i data-lucide="${type === 'error' ? 'x-circle' : type === 'info' ? 'info' : 'check-circle'}" class="w-5 h-5"></i> ${msg}`;
+      c.appendChild(d);
+      lucide.createIcons();
+      setTimeout(() => { d.style.opacity = '0'; setTimeout(() => d.remove(), 300); }, 3000);
+    }
+
+    // เริ่มทำงานเมื่อเอกสารพร้อม
+    window.onload = () => {
+      buildCriteriaUI();
+      document.querySelectorAll('.score-input').forEach(input => {
+        input.addEventListener('input', calculateRealtime);
+      });
+      loadData();
+    };
+  </script>
+</body>
+</html>
