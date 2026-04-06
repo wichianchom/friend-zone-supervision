@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="th" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบนิเทศ Friend Zone</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: { extend: { fontFamily: { kanit: ['Kanit', 'sans-serif'] } } }
+    }
+  </script>
+  <style>
+    html, body { height: 100%; margin: 0; font-family: 'Kanit', sans-serif; }
+    .page-transition { animation: fadeSlideIn 0.4s ease-out; }
+    @keyframes fadeSlideIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+    .toast-enter { animation: toastIn 0.3s ease-out; }
+    @keyframes toastIn { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+    .gradient-text { background: linear-gradient(135deg, #6366f1, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .card-hover:hover { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(0,0,0,0.1); transition: all 0.3s ease; }
+    @media print { .no-print { display: none !important; } body { background: white !important; } }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 overflow-auto">
+  <div id="app" class="w-full min-h-full flex flex-col">
+    
+    <div id="toast-container" class="fixed top-4 right-4 z-[9999] flex flex-col gap-2"></div>
+
+    <nav class="no-print sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-slate-200/60 shadow-sm">
+      <div class="max-w-7xl mx-auto px-4 py-3">
+        <div class="flex items-center justify-between">
+          
+          <div class="flex items-center gap-3 cursor-pointer" onclick="navigateTo('home'); closeMobileMenu()">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-pink-500 flex items-center justify-center text-white font-bold text-lg shadow-lg">FZ</div>
+            <div>
+              <h1 class="text-lg font-bold gradient-text leading-tight">Friend Zone</h1>
+              <p class="text-[10px] text-slate-400 leading-tight">ห้องเรียนพลังเพื่อน</p>
+            </div>
+          </div>
+          
+          <div class="hidden md:flex items-center gap-1">
+            <button onclick="navigateTo('home')" class="nav-btn px-3 py-2 rounded-lg text-sm font-medium transition-all hover:bg-indigo-50 hover:text-indigo-600" data-page="home"><i data-lucide="home" class="inline w-4 h-4 mr-1"></i>หน้าแรก</button>
+            <button onclick="navigateTo('form')" class="nav-btn px-3 py-2 rounded-lg text-sm font-medium transition-all hover:bg-indigo-50 hover:text-indigo-600" data-page="form"><i data-lucide="file-plus" class="inline w-4 h-4 mr-1"></i>ส่งข้อมูลนิเทศ</button>
+            <button onclick="navigateTo('status')" class="nav-btn px-3 py-2 rounded-lg text-sm font-medium transition-all hover:bg-indigo-50 hover:text-indigo-600" data-page="status"><i data-lucide="search" class="inline w-4 h-4 mr-1"></i>สถานะ</button>
+            <button onclick="navigateTo('summary')" class="nav-btn px-3 py-2 rounded-lg text-sm font-medium transition-all hover:bg-indigo-50 hover:text-indigo-600" data-page="summary"><i data-lucide="bar-chart-3" class="inline w-4 h-4 mr-1"></i>สรุปผล</button>
+            
+            <div class="w-px h-5 bg-slate-200 mx-1"></div>
+            
+            <button onclick="openAdminModal()" class="px-3 py-2 rounded-lg text-sm font-semibold transition-all text-slate-500 hover:bg-slate-800 hover:text-white flex items-center">
+              <i data-lucide="shield" class="inline w-4 h-4 mr-1"></i>Admin
+            </button>
+          </div>
+
+          <button id="mobile-menu-btn" onclick="toggleMobileMenu()" class="md:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+            <i data-lucide="menu" class="w-6 h-6"></i>
+          </button>
+        </div>
+
+        <div id="mobile-menu" class="hidden md:hidden mt-3 pt-3 border-t border-slate-100 flex-col gap-1">
+          <button onclick="navigateTo('home'); closeMobileMenu()" class="nav-btn-mobile w-full text-left px-4 py-3 rounded-xl text-sm font-medium hover:bg-indigo-50 hover:text-indigo-600 flex items-center gap-3 transition-colors" data-page="home"><i data-lucide="home" class="w-5 h-5"></i>หน้าแรก</button>
+          <button onclick="navigateTo('form'); closeMobileMenu()" class="nav-btn-mobile w-full text-left px-4 py-3 rounded-xl text-sm font-medium hover:bg-indigo-50 hover:text-indigo-600 flex items-center gap-3 transition-colors" data-page="form"><i data-lucide="file-plus" class="w-5 h-5"></i>ส่งข้อมูลนิเทศ</button>
+          <button onclick="navigateTo('status'); closeMobileMenu()" class="nav-btn-mobile w-full text-left px-4 py-3 rounded-xl text-sm font-medium hover:bg-indigo-50 hover:text-indigo-600 flex items-center gap-3 transition-colors" data-page="status"><i data-lucide="search" class="w-5 h-5"></i>สถานะ</button>
+          <button onclick="navigateTo('summary'); closeMobileMenu()" class="nav-btn-mobile w-full text-left px-4 py-3 rounded-xl text-sm font-medium hover:bg-indigo-50 hover:text-indigo-600 flex items-center gap-3 transition-colors" data-page="summary"><i data-lucide="bar-chart-3" class="w-5 h-5"></i>สรุปผล</button>
+          <div class="h-px bg-slate-100 my-1 mx-2"></div>
+          <button onclick="openAdminModal(); closeMobileMenu()" class="w-full text-left px-4 py-3 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-800 hover:text-white flex items-center gap-3 transition-colors">
+            <i data-lucide="shield" class="w-5 h-5"></i>เข้าสู่ระบบ Admin
+          </button>
+        </div>
+      </div>
+    </nav>
+
+    <div id="page-container" class="flex-1 w-full">
+      
+      <div id="page-home" class="page page-transition">
+        <div class="relative bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 text-white py-16 md:py-24 text-center">
+          <div class="max-w-3xl mx-auto px-4 relative z-10">
+            <h1 class="text-4xl md:text-6xl font-black mb-4">ระบบ Friend Zone</h1>
+            <p class="text-xl md:text-2xl font-light mb-8 opacity-90">ห้องเรียนพลังเพื่อน</p>
+            <div class="flex justify-center gap-4">
+              <button onclick="navigateTo('form')" class="bg-white text-indigo-600 font-bold px-8 py-3 rounded-xl hover:bg-indigo-50 transition shadow-xl"><i data-lucide="file-plus" class="inline w-5 h-5 mr-2"></i>ส่งผลงาน</button>
+            </div>
+          </div>
+        </div>
+        <div class="max-w-5xl mx-auto px-4 -mt-8 relative z-10 grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div class="bg-white rounded-2xl p-5 shadow-lg text-center card-hover">
+            <div class="text-3xl font-black text-indigo-600" id="stat-total">0</div>
+            <div class="text-xs text-slate-500 mt-1">ส่งทั้งหมด</div>
+          </div>
+          <div class="bg-white rounded-2xl p-5 shadow-lg text-center card-hover">
+            <div class="text-3xl font-black text-amber-500" id="stat-pending">0</div>
+            <div class="text-xs text-slate-500 mt-1">รอรับการนิเทศ</div>
+          </div>
+          <div class="bg-white rounded-2xl p-5 shadow-lg text-center card-hover">
+            <div class="text-3xl font-black text-emerald-500" id="stat-reviewed">0</div>
+            <div class="text-xs text-slate-500 mt-1">เสร็จสิ้น</div>
+          </div>
+          <div class="bg-white rounded-2xl p-5 shadow-lg text-center card-hover">
+            <div class="text-3xl font-black text-pink-500" id="stat-avg">0</div>
+            <div class="text-xs text-slate-500 mt-1">คะแนนเฉลี่ย</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="page-form" class="page page-transition hidden">
+        <div class="max-w-2xl mx-auto px-4 py-12">
+          <h2 class="text-2xl font-bold text-center mb-8">กรอกข้อมูลผู้รับการนิเทศ</h2>
+          <form id="supervision-form" class="bg-white rounded-2xl shadow-lg border border-slate-100 p-8 space-y-5">
+            <div><label class="block text-sm font-semibold mb-1">ชื่อ-นามสกุล *</label> <input type="text" id="f-name" required class="w-full border border-slate-200 rounded-xl px-4 py-3 focus:border-indigo-500 outline-none"></div>
+            <div class="grid grid-cols-2 gap-5">
+              <div><label class="block text-sm font-semibold mb-1">กลุ่มชั้น *</label> <select id="f-grade" required class="w-full border border-slate-200 rounded-xl px-4 py-3 focus:border-indigo-500 outline-none"><option value="">เลือก</option><option>ปฐมวัย</option><option>ป.1</option><option>ป.2</option><option>ป.3</option><option>ป.4</option><option>ป.5</option><option>ป.6</option></select></div>
+              <div><label class="block text-sm font-semibold mb-1">ห้อง *</label> <input type="text" id="f-classroom" required placeholder="เช่น ป.3/1" class="w-full border border-slate-200 rounded-xl px-4 py-3 focus:border-indigo-500 outline-none"></div>
+            </div>
+            <div><label class="block text-sm font-semibold mb-1">วิชาที่สอน *</label> <input type="text" id="f-subject" required class="w-full border border-slate-200 rounded-xl px-4 py-3 focus:border-indigo-500 outline-none"></div>
+            <div><label class="block text-sm font-semibold mb-1">เรื่องที่สอน *</label> <input type="text" id="f-topic" required class="w-full border border-slate-200 rounded-xl px-4 py-3 focus:border-indigo-500 outline-none"></div>
+            <div><label class="block text-sm font-semibold mb-1">ลิงก์วิดีโอ *</label> <input type="url" id="f-video" required placeholder="https://..." class="w-full border border-slate-200 rounded-xl px-4 py-3 focus:border-indigo-500 outline-none"></div>
+            <button type="submit" id="submit-btn" class="w-full bg-indigo-600 text-white font-bold py-3.5 rounded-xl hover:bg-indigo-700 transition shadow-lg mt-4"><i data-lucide="send" class="inline w-5 h-5 mr-2"></i>ส่งข้อมูล</button>
+          </form>
+        </div>
+      </div>
+
+      <div id="page-status" class="page page-transition hidden">
+        <div class="max-w-3xl mx-auto px-4 py-12">
+          <h2 class="text-2xl font-bold text-center mb-8">ค้นหาสถานะการนิเทศ</h2>
+          <div class="flex gap-3 mb-6">
+            <input type="text" id="search-name" placeholder="พิมพ์ชื่อเพื่อค้นหา..." class="flex-1 border border-slate-200 rounded-xl px-4 py-3 focus:border-indigo-500 outline-none">
+            <button onclick="searchStatus()" class="bg-indigo-600 text-white px-6 py-3 rounded-xl hover:bg-indigo-700 font-semibold"><i data-lucide="search" class="inline w-4 h-4"></i></button>
+          </div>
+          <div id="search-results" class="space-y-4"><p class="text-center text-slate-400 py-8">พิมพ์ชื่อเพื่อค้นหาข้อมูล</p></div>
+        </div>
+      </div>
+
+      <div id="page-summary" class="page page-transition hidden">
+        <div class="max-w-5xl mx-auto px-4 py-12">
+          <div class="flex justify-between items-center mb-8">
+            <h2 class="text-2xl font-bold">🏆 Top 10 อันดับคะแนนนิเทศ</h2>
+            <button onclick="window.print()" class="no-print bg-slate-800 text-white px-4 py-2 rounded-lg text-sm hover:bg-slate-900"><i data-lucide="printer" class="inline w-4 h-4 mr-1"></i>พิมพ์รายงาน</button>
+          </div>
+          <div class="bg-white rounded-2xl shadow-lg border border-slate-100 p-6">
+            <div id="top10-list" class="space-y-4"><p class="text-center text-slate-400 py-8">กำลังประมวลผลข้อมูล...</p></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div id="admin-login-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity" onclick="closeAdminModal()"></div>
+    <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 page-transition">
+      <div class="text-center mb-6">
+        <div class="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-3 text-slate-700">
+          <i data-lucide="lock" class="w-6 h-6"></i>
+        </div>
+        <h3 class="text-xl font-bold font-kanit">เข้าสู่ระบบผู้ดูแล</h3>
+        <p class="text-sm text-slate-500 mt-1">เฉพาะแอดมินหรือผู้ประเมินเท่านั้น</p>
+      </div>
+      <div class="space-y-4">
+        <div>
+          <input type="password" id="admin-password-input" placeholder="ใส่รหัสผ่าน..." class="w-full border border-slate-300 rounded-xl px-4 py-3 text-center text-lg focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition font-kanit" onkeypress="if(event.key === 'Enter') checkAdminPassword()">
+        </div>
+        <div id="admin-error-msg" class="hidden text-red-500 text-sm text-center bg-red-50 py-2 rounded-lg font-medium">รหัสผ่านไม่ถูกต้อง!</div>
+        <button onclick="checkAdminPassword()" class="w-full bg-slate-800 text-white font-bold py-3 rounded-xl hover:bg-slate-900 transition shadow-md flex items-center justify-center gap-2">
+          ยืนยันการเข้าสู่ระบบ
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== ลิงก์ API ตัวเดียวกับหน้า Admin =====
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxTpS34Ir7lonHxSbCEXEG2UXEKwX0cKCjDy8bVZRFkCV8bkJMd1YaqarL_b-2TrtWI/exec'; 
+
+    let allRecords = [];
+    let currentPage = 'home';
+
+    // 1. ระบบนำทาง
+    function navigateTo(page) {
+      currentPage = page;
+      document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+      document.getElementById('page-' + page).classList.remove('hidden');
+      
+      // อัปเดตสีปุ่มแบบจอคอม
+      document.querySelectorAll('.nav-btn').forEach(b => {
+        b.classList.toggle('bg-indigo-50', b.dataset.page === page);
+        b.classList.toggle('text-indigo-600', b.dataset.page === page);
+      });
+      
+      // อัปเดตสีปุ่มแบบจอมือถือ
+      document.querySelectorAll('.nav-btn-mobile').forEach(b => {
+        b.classList.toggle('bg-indigo-50', b.dataset.page === page);
+        b.classList.toggle('text-indigo-600', b.dataset.page === page);
+      });
+
+      if (page === 'summary') renderSummary();
+      lucide.createIcons();
+    }
+
+    // ===== ระบบเมนูบนมือถือ =====
+    function toggleMobileMenu() {
+      const menu = document.getElementById('mobile-menu');
+      const icon = document.querySelector('#mobile-menu-btn i');
+      
+      if (menu.classList.contains('hidden')) {
+        menu.classList.remove('hidden');
+        menu.classList.add('flex');
+        icon.setAttribute('data-lucide', 'x'); 
+      } else {
+        closeMobileMenu();
+      }
+      lucide.createIcons();
+    }
+
+    function closeMobileMenu() {
+      const menu = document.getElementById('mobile-menu');
+      const icon = document.querySelector('#mobile-menu-btn i');
+      menu.classList.add('hidden');
+      menu.classList.remove('flex');
+      icon.setAttribute('data-lucide', 'menu'); 
+      lucide.createIcons();
+    }
+
+    // ===== ส่วนของ Modal รหัสผ่าน Admin =====
+    function openAdminModal() {
+      document.getElementById('admin-password-input').value = '';
+      document.getElementById('admin-error-msg').classList.add('hidden');
+      document.getElementById('admin-login-modal').classList.remove('hidden');
+      setTimeout(() => document.getElementById('admin-password-input').focus(), 100);
+    }
+    function closeAdminModal() { document.getElementById('admin-login-modal').classList.add('hidden'); }
+    function checkAdminPassword() {
+      if (document.getElementById('admin-password-input').value === 'WCC1234') {
+        closeAdminModal();
+        window.open('admin.html', '_blank');
+      } else {
+        document.getElementById('admin-error-msg').classList.remove('hidden');
+      }
+    }
+
+    // 2. โหลดข้อมูลจาก Google Sheets
+    async function loadData() {
+      if (!WEB_APP_URL || WEB_APP_URL.includes('ใส่_URL')) return;
+
+      try {
+        const response = await fetch(WEB_APP_URL);
+        const data = await response.json();
+        
+        if(!data || data.length === 0) return;
+
+        allRecords = data.map(row => ({
+            timestamp: row.Timestamp,
+            name: row.Name,
+            grade: row.Grade,
+            class: row.Class,
+            subject: row.Subject,
+            topic: row.Topic,
+            link: row.Link,
+            score_total: parseInt(row.Total) || 0,
+            score_percent: parseFloat(row.ScorePercentage) || 0,
+            score_avg: parseFloat(row.Average10) || 0, 
+            feedback: row.Feedback,
+            status: row.Status
+        }));
+
+        updateHomeStats();
+        if(currentPage === 'summary') renderSummary();
+        if(currentPage === 'status') searchStatus();
+      } catch (error) {
+        console.error('เกิดข้อผิดพลาดในการโหลดข้อมูล:', error);
+      }
+    }
+
+    // 3. อัปเดตตัวเลขใน "หน้าแรก"
+    function updateHomeStats() {
+      const total = allRecords.length;
+      const pending = allRecords.filter(r => r.status === 'รอรับการนิเทศ' || r.status === 'รอประเมิน').length;
+      const reviewed = allRecords.filter(r => r.status === 'ดำเนินการนิเทศเสร็จสิ้น' || r.status === 'ประเมินแล้ว').length;
+      
+      const reviewedRecords = allRecords.filter(r => (r.status === 'ดำเนินการนิเทศเสร็จสิ้น' || r.status === 'ประเมินแล้ว') && r.score_total > 0);
+      const avg = reviewedRecords.length ? (reviewedRecords.reduce((sum, r) => sum + r.score_avg, 0) / reviewedRecords.length).toFixed(2) : '0';
+
+      document.getElementById('stat-total').textContent = total;
+      document.getElementById('stat-pending').textContent = pending;
+      document.getElementById('stat-reviewed').textContent = reviewed;
+      document.getElementById('stat-avg').textContent = avg;
+    }
+
+    // 4. ส่งข้อมูลฟอร์มใหม่
+    document.getElementById('supervision-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const btn = document.getElementById('submit-btn');
+      btn.disabled = true; 
+      btn.innerHTML = '<span class="animate-pulse">กำลังส่งข้อมูล...</span>';
+
+      const payload = {
+        action: 'submitForm',
+        name: document.getElementById('f-name').value.trim(),
+        grade: document.getElementById('f-grade').value,
+        class: document.getElementById('f-classroom').value.trim(),
+        subject: document.getElementById('f-subject').value.trim(),
+        topic: document.getElementById('f-topic').value.trim(),
+        link: document.getElementById('f-video').value.trim()
+      };
+
+      try {
+        const response = await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify(payload) });
+        const res = await response.json();
+        
+        if (res.status === 'success') {
+          showToast('ส่งข้อมูลสำเร็จ!', 'success');
+          document.getElementById('supervision-form').reset();
+          loadData(); 
+        } else {
+          showToast('เกิดข้อผิดพลาด: ' + res.message, 'error');
+        }
+      } catch (err) {
+        showToast('การเชื่อมต่อล้มเหลว', 'error');
+      } finally {
+        btn.disabled = false; 
+        btn.innerHTML = '<i data-lucide="send" class="inline w-5 h-5 mr-2"></i>ส่งข้อมูล';
+        lucide.createIcons();
+      }
+    });
+
+    // 5. หน้าตรวจสอบสถานะ
+    function searchStatus() {
+      const q = document.getElementById('search-name').value.trim().toLowerCase();
+      const container = document.getElementById('search-results');
+      if (!q) { container.innerHTML = '<p class="text-center text-slate-400 py-8">พิมพ์ชื่อเพื่อค้นหาข้อมูล</p>'; return; }
+
+      const results = allRecords.filter(r => r.name.toLowerCase().includes(q));
+      if (!results.length) { container.innerHTML = '<p class="text-center text-slate-400 py-8">ไม่พบข้อมูล</p>'; return; }
+
+      container.innerHTML = results.map(r => {
+        const isDone = r.status === 'ดำเนินการนิเทศเสร็จสิ้น' || r.status === 'ประเมินแล้ว';
+        const statusColor = isDone ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700';
+        const displayStatus = isDone ? 'ประเมินแล้ว' : 'รอรับการนิเทศ';
+        
+        let scoreUI = '';
+        if (isDone) {
+          scoreUI = `
+            <div class="mt-4 bg-slate-50 rounded-xl p-4 border border-slate-100">
+              <div class="grid grid-cols-3 gap-2 text-center mb-3">
+                <div><div class="text-[10px] text-slate-500">คะแนนเต็ม 225</div><div class="font-bold text-emerald-600 text-lg">${r.score_total}</div></div>
+                <div><div class="text-[10px] text-slate-500">ร้อยละ</div><div class="font-bold text-teal-600 text-lg">${r.score_percent}%</div></div>
+                <div><div class="text-[10px] text-slate-500">เฉลี่ยเต็ม 5</div><div class="font-bold text-indigo-600 text-lg">${r.score_avg}</div></div>
+              </div>
+              ${r.feedback ? `<div class="text-sm bg-white p-3 rounded-lg border border-slate-200 font-kanit"><strong>ข้อเสนอแนะ:</strong><br>${r.feedback.replace(/\n/g, '<br>')}</div>` : ''}
+            </div>
+          `;
+        }
+
+        return `
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 card-hover">
+            <div class="flex justify-between items-start mb-2">
+              <div><h4 class="font-bold text-lg">${r.name}</h4><p class="text-sm text-slate-500">${r.grade} | ${r.subject}</p></div>
+              <span class="px-3 py-1 rounded-full text-xs font-semibold ${statusColor}">${displayStatus}</span>
+            </div>
+            ${scoreUI}
+          </div>
+        `;
+      }).join('');
+    }
+
+    // 6. หน้าจัดอันดับ Top 10
+    function renderSummary() {
+      const container = document.getElementById('top10-list');
+      const reviewed = allRecords.filter(r => (r.status === 'ดำเนินการนิเทศเสร็จสิ้น' || r.status === 'ประเมินแล้ว') && r.score_total > 0);
+      const sorted = reviewed.sort((a, b) => b.score_total - a.score_total).slice(0, 10);
+
+      if (!sorted.length) {
+        container.innerHTML = '<p class="text-center text-slate-400 py-8">ยังไม่มีผลการประเมิน</p>';
+        return;
+      }
+
+      container.innerHTML = sorted.map((r, i) => {
+        const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `<span class="text-slate-400 font-bold">${i + 1}</span>`;
+        const pct = ((r.score_total / 225) * 100).toFixed(0); 
+        const barColor = i < 3 ? 'from-amber-400 to-orange-400' : 'from-indigo-400 to-purple-400';
+        
+        return `
+          <div class="flex items-center gap-4 p-3 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition">
+            <div class="w-8 text-center text-2xl">${medal}</div>
+            <div class="flex-1 min-w-0">
+              <div class="flex justify-between items-end mb-1">
+                <span class="font-bold truncate text-slate-800">${r.name}</span>
+                <span class="text-sm font-bold text-indigo-600">${r.score_total}<span class="text-xs text-slate-400 font-normal">/225</span></span>
+              </div>
+              <div class="w-full bg-slate-100 rounded-full h-2"><div class="bg-gradient-to-r ${barColor} h-2 rounded-full" style="width:${pct}%"></div></div>
+              <div class="text-[11px] text-slate-500 mt-1">${r.grade} | ${r.subject}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // UI Toast
+    function showToast(msg, type = 'success') {
+      const c = document.getElementById('toast-container');
+      const d = document.createElement('div');
+      d.className = `toast-enter ${type === 'error' ? 'bg-red-500' : 'bg-emerald-500'} text-white px-5 py-3 rounded-xl shadow-lg text-sm font-medium flex items-center gap-2 font-kanit`;
+      d.innerHTML = `<i data-lucide="${type === 'error' ? 'x-circle' : 'check-circle'}" class="w-5 h-5"></i> ${msg}`;
+      c.appendChild(d);
+      lucide.createIcons();
+      setTimeout(() => { d.style.opacity = '0'; setTimeout(() => d.remove(), 300); }, 3000);
+    }
+
+    // เริ่มทำงานเมื่อเปิดหน้าเว็บ
+    window.onload = () => {
+      lucide.createIcons();
+      navigateTo('home');
+      loadData(); 
+    };
+  </script>
+</body>
+</html>
